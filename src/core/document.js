@@ -163,6 +163,52 @@ class Page {
     return null;
   }
 
+  /**
+   * Recursively de-structure a Dict so that it is
+   *   serializable and can be sent across to the main thread.
+   * _dictRefs keeps track of references that have been followed
+   *   to prevent gettings caught in circular references
+   * TODO: Is there another built in way to do this?
+   * @param {Dict} property
+   * @returns Object. Serializable.
+   */
+  _serializeReferences(prop, _dictRefs = new Set()) {
+    if (!prop) {
+      return undefined;
+    }
+    if (_dictRefs.has(prop)) {
+      return undefined;
+    }
+    if (Array.isArray(prop)) {
+      return prop
+        .map(x => this._serializeReferences(x, _dictRefs))
+        .filter(x => x !== undefined);
+    }
+    const result = {};
+    prop.getKeys().forEach(k => {
+      const v = prop.get(k);
+      if (isDict(v)) {
+        const v2 = this._serializeReferences(v, _dictRefs);
+        if (v2) {
+          result[k] = v2;
+        }
+        _dictRefs.add(v);
+      } else {
+        result[k] = v;
+      }
+    });
+    return result;
+  }
+
+  get vp() {
+    let dict = {};
+    const vp = this._getInheritableProperty("VP");
+    if (vp && vp[0]) {
+      dict = this._serializeReferences(vp);
+    }
+    return shadow(this, "vp", dict);
+  }
+
   get mediaBox() {
     // Reset invalid media box to letter size.
     return shadow(

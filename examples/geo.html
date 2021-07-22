@@ -1,0 +1,111 @@
+<html>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js" crossorigin=""></script>
+<script src='https://unpkg.com/@redfish/leafletelementoverlay@1.2.0/elementOverlay.js'></script>
+
+<script src='https://unpkg.com/@redfish/leafletelementoverlay@1.2.0/worldFile.js'></script>
+<script src="../build/generic/build/pdf.js"></script>
+<script src='https://unpkg.com/mathjs@9.4.4/lib/browser/math.js'></script>
+
+<h1>Geo pdf example </h1>
+<div id="map" style="width: 80vw; height: 90vh"></div>
+
+<script type='module'>
+
+  import proj4 from 'https://cdn.skypack.dev/proj4';
+
+
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '../build/generic/build/pdf.worker.js';
+
+  // If absolute URL from the remote server is provided, configure the CORS
+  // header on that server.
+  var url = 'http://node.redfish.com/Documents/cody/Poso_IAP_Map_8x11_06-15-2021_2100hrs.pdf';
+
+  // Asynchronous download of PDF
+  var loadingTask = pdfjsLib.getDocument(url);
+  loadingTask.promise.then(async (pdf) => {
+    const page = await pdf.getPage(1)
+    console.log(page, page.vp[0])
+    addPageToMap(page)
+  }, function (reason) {
+    // PDF loading error
+    console.error(reason);
+  });
+
+  async function pageToCanvas(page) {
+    console.log('PDF loaded');
+
+
+    var viewport = page.getViewport({ scale: 1 });
+
+    // Prepare canvas using PDF page dimensions
+    var canvas = document.createElement('canvas')
+    var context = canvas.getContext('2d');
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
+
+    // Render PDF page into canvas context
+    var renderContext = {
+      canvasContext: context,
+      viewport: viewport
+    };
+    var renderTask = page.render(renderContext);
+    renderTask.promise.then(function () {
+      console.log('Page rendered');
+
+    });
+    return canvas
+  }
+
+  async function addPageToMap(page) {
+    const coords = []
+    const measure = page.vp[0].Measure
+    for (let i = 1; i < measure.GPTS.length; i += 2) {
+      const coord = [measure.GPTS[i - 1], measure.GPTS[i], 1]
+      coords.push(coord)
+    }
+    const coordsYX = coords.map(x => [x[1], x[0]])
+    const bounds = new L.LatLngBounds(coords)
+    console.log(bounds)
+    const { width, height } = page.getViewport({ scale: 1 });
+    const bbox = page.vp[0].BBox
+    const ulPix = [bbox[0], height - bbox[1], 1]
+    const lrPix = [bbox[2], height - bbox[3], 1]
+    const llPix = [ulPix[0], lrPix[1], 1]
+    const urPix = [lrPix[0], ulPix[1], 1]
+    const llGeo = coordsYX[0]
+    const ulGeo = coordsYX[1]
+    const urGeo = coordsYX[2]
+    const lrGeo = coordsYX[3]
+    // Least squares bacause we have 4 points, but only need 3
+    const B = math.matrix([llGeo, ulGeo, urGeo, lrGeo])
+    const X = math.matrix([llPix, ulPix, urPix, lrPix])
+    const t = math.transpose
+    const mult = math.multiply
+    const fu = math.inv(mult(t(X), X))
+    const bar = mult(t(B), X)
+    const M = mult(bar, fu)
+    // worldfile
+    const [a, b, c] = [M.get([0, 0]), M.get([0, 1]), M.get([0, 2])]
+    const [d, e, f] = [M.get([1, 0]), M.get([1, 1]), M.get([1, 2])]
+    const params = { a, b:-b, c, d:-d, e, f }
+    //
+    // Make map
+    const map = L.map('map').setView(bounds.getCenter(), 12)
+    const base = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}')
+    map.addLayer(base)
+    //
+    // world file
+    const can = await pageToCanvas(page)
+    const viewport = page.getViewport({ scale: 1 });
+    const wfLay = new L.WorldFile({ params, opacity: 0.4, imageUrl: can })
+    map.addLayer(wfLay)
+    console.log({ coords, ulPix, lrPix, llPix, urPix, B, X, M, params, can })
+    coords.forEach(c => L.marker(c).addTo(map))
+
+  }
+
+
+
+</script>

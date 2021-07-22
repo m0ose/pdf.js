@@ -1272,6 +1272,14 @@ class PDFPageProxy {
   }
 
   /**
+   * @type {Object} The geospatial measure dictionary.
+   * @returns Object. Returns an empty Dictionary when not found
+   */
+  get vp() {
+    return this._pageInfo.vp;
+  }
+
+  /**
    * @type {Array<number>} An array of the visible portion of the PDF page in
    *   user space units [x1, y1, x2, y2].
    */

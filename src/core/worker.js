@@ -451,12 +451,14 @@ class WorkerMessageHandler {
           pdfManager.ensure(page, "ref"),
           pdfManager.ensure(page, "userUnit"),
           pdfManager.ensure(page, "view"),
-        ]).then(function ([rotate, ref, userUnit, view]) {
+          pdfManager.ensure(page, "vp"),
+        ]).then(function ([rotate, ref, userUnit, view, vp]) {
           return {
             rotate,
             ref,
             userUnit,
             view,
+            vp,
           };
         });
       });
