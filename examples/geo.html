@@ -3,18 +3,17 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" crossorigin="" />
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js" crossorigin=""></script>
 <script src='https://unpkg.com/@redfish/leafletelementoverlay@1.2.0/elementOverlay.js'></script>
-
 <script src='https://unpkg.com/@redfish/leafletelementoverlay@1.2.0/worldFile.js'></script>
-<script src="../build/generic/build/pdf.js"></script>
 <script src='https://unpkg.com/mathjs@9.4.4/lib/browser/math.js'></script>
+<script src="../build/generic/build/pdf.js"></script>
 
-<h1>Geo pdf example </h1>
+
+<h1>Geo PDF example </h1>
+
 <div id="map" style="width: 80vw; height: 90vh"></div>
 
+
 <script type='module'>
-
-  import proj4 from 'https://cdn.skypack.dev/proj4';
-
 
   pdfjsLib.GlobalWorkerOptions.workerSrc = '../build/generic/build/pdf.worker.js';
 
@@ -34,12 +33,11 @@
   });
 
   async function pageToCanvas(page) {
+    
     console.log('PDF loaded');
 
-
-    var viewport = page.getViewport({ scale: 1 });
-
     // Prepare canvas using PDF page dimensions
+    var viewport = page.getViewport({ scale: 1 });
     var canvas = document.createElement('canvas')
     var context = canvas.getContext('2d');
     canvas.height = viewport.height;
@@ -55,6 +53,7 @@
       console.log('Page rendered');
 
     });
+
     return canvas
   }
 
@@ -65,7 +64,7 @@
       const coord = [measure.GPTS[i - 1], measure.GPTS[i], 1]
       coords.push(coord)
     }
-    const coordsYX = coords.map(x => [x[1], x[0]])
+    const coordsXY = coords.map(x => [x[1], x[0]]) // put in xy order for calculating the worlfile
     const bounds = new L.LatLngBounds(coords)
     console.log(bounds)
     const { width, height } = page.getViewport({ scale: 1 });
@@ -74,11 +73,9 @@
     const lrPix = [bbox[2], height - bbox[3], 1]
     const llPix = [ulPix[0], lrPix[1], 1]
     const urPix = [lrPix[0], ulPix[1], 1]
-    const llGeo = coordsYX[0]
-    const ulGeo = coordsYX[1]
-    const urGeo = coordsYX[2]
-    const lrGeo = coordsYX[3]
-    // Least squares bacause we have 4 points, but only need 3
+    const [llGeo, ulGeo, urGeo, lrGeo] = coordsXY
+    // Least squares solve for the worldfile matrix
+    //   , because we have 4 points, but only need 3
     const B = math.matrix([llGeo, ulGeo, urGeo, lrGeo])
     const X = math.matrix([llPix, ulPix, urPix, lrPix])
     const t = math.transpose
@@ -89,7 +86,7 @@
     // worldfile
     const [a, b, c] = [M.get([0, 0]), M.get([0, 1]), M.get([0, 2])]
     const [d, e, f] = [M.get([1, 0]), M.get([1, 1]), M.get([1, 2])]
-    const params = { a, b:-b, c, d:-d, e, f }
+    const params = { a, b: -b, c, d: -d, e, f } // negate b and d because of y coordinate flip
     //
     // Make map
     const map = L.map('map').setView(bounds.getCenter(), 12)
@@ -103,7 +100,6 @@
     map.addLayer(wfLay)
     console.log({ coords, ulPix, lrPix, llPix, urPix, B, X, M, params, can })
     coords.forEach(c => L.marker(c).addTo(map))
-
   }
 
 
