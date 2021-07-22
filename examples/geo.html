@@ -24,8 +24,8 @@
   // Asynchronous download of PDF
   var loadingTask = pdfjsLib.getDocument(url);
   loadingTask.promise.then(async (pdf) => {
+    console.log('pdf',pdf)
     const page = await pdf.getPage(1)
-    console.log(page, page.vp[0])
     addPageToMap(page)
   }, function (reason) {
     // PDF loading error
@@ -59,7 +59,8 @@
 
   async function addPageToMap(page) {
     const coords = []
-    const measure = page.vp[0].Measure
+    const vp = await page.getVP()
+    const measure = vp[0].Measure
     for (let i = 1; i < measure.GPTS.length; i += 2) {
       const coord = [measure.GPTS[i - 1], measure.GPTS[i], 1]
       coords.push(coord)
@@ -68,7 +69,7 @@
     const bounds = new L.LatLngBounds(coords)
     console.log(bounds)
     const { width, height } = page.getViewport({ scale: 1 });
-    const bbox = page.vp[0].BBox
+    const bbox = vp[0].BBox
     const ulPix = [bbox[0], height - bbox[1], 1]
     const lrPix = [bbox[2], height - bbox[3], 1]
     const llPix = [ulPix[0], lrPix[1], 1]

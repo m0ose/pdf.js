@@ -1272,14 +1272,6 @@ class PDFPageProxy {
   }
 
   /**
-   * @type {Object} The geospatial measure dictionary.
-   * @returns Object. Returns an empty Dictionary when not found
-   */
-  get vp() {
-    return this._pageInfo.vp;
-  }
-
-  /**
    * @type {Array<number>} An array of the visible portion of the PDF page in
    *   user space units [x1, y1, x2, y2].
    */
@@ -1339,6 +1331,14 @@ class PDFPageProxy {
     return (this._jsActionsPromise ||= this._transport.getPageJSActions(
       this._pageIndex
     ));
+  }
+
+    /**
+   * @type {Object} The geospatial measure dictionary.
+   * @returns Object. Returns an empty Object when not found
+   */
+  getVP() {
+    return this._transport.getVP(this._pageIndex)
   }
 
   /**
@@ -2908,6 +2908,12 @@ class WorkerTransport {
 
   getPageJSActions(pageIndex) {
     return this.messageHandler.sendWithPromise("GetPageJSActions", {
+      pageIndex,
+    });
+  }
+
+  getVP(pageIndex) {
+    return this.messageHandler.sendWithPromise("GetVP", {
       pageIndex,
     });
   }

@@ -451,14 +451,12 @@ class WorkerMessageHandler {
           pdfManager.ensure(page, "ref"),
           pdfManager.ensure(page, "userUnit"),
           pdfManager.ensure(page, "view"),
-          pdfManager.ensure(page, "vp"),
-        ]).then(function ([rotate, ref, userUnit, view, vp]) {
+        ]).then(function ([rotate, ref, userUnit, view]) {
           return {
             rotate,
             ref,
             userUnit,
             view,
-            vp,
           };
         });
       });
@@ -552,6 +550,12 @@ class WorkerMessageHandler {
     handler.on("GetAnnotations", function ({ pageIndex, intent }) {
       return pdfManager.getPage(pageIndex).then(function (page) {
         return page.getAnnotationsData(intent);
+      });
+    });
+
+    handler.on("GetVP", function ({ pageIndex}) {
+      return pdfManager.getPage(pageIndex).then(function (page) {
+        return page.vp;
       });
     });
 
