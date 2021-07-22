@@ -1333,12 +1333,12 @@ class PDFPageProxy {
     ));
   }
 
-    /**
+  /**
    * @type {Object} The geospatial measure dictionary.
    * @returns Object. Returns an empty Object when not found
    */
   getVP() {
-    return this._transport.getVP(this._pageIndex)
+    return this._transport.getVP(this._pageIndex);
   }
 
   /**

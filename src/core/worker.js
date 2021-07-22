@@ -553,7 +553,7 @@ class WorkerMessageHandler {
       });
     });
 
-    handler.on("GetVP", function ({ pageIndex}) {
+    handler.on("GetVP", function ({ pageIndex }) {
       return pdfManager.getPage(pageIndex).then(function (page) {
         return page.vp;
       });
