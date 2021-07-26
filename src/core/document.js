@@ -163,6 +163,85 @@ class Page {
     return null;
   }
 
+  _parseGCSDict(prop) {
+    if (prop && isDict(prop) && prop.has("Type")) {
+      const result = {};
+      result.Type = prop.get("Type"); /* name required */
+      if (prop.has("EPSG")) {
+        /* integer optional */
+        result.Type = prop.get("EPSG");
+      }
+      if (prop.has("WKT")) {
+        /* ASCII String optional */
+        result.WKT = prop.get("WKT");
+      }
+      return result;
+    }
+    return undefined;
+  }
+
+  _parseMeasure(prop) {
+    if (!prop) {
+      return undefined;
+    }
+    const measure = {};
+    measure.GPTS = prop.getArray("GPTS"); /* array required */
+    measure.GCS = this._parseGCSDict(prop.get("GCS")); /* dictionary required */
+    if (!measure.GPTS || !measure.GCS || !Array.isArray(measure.GPTS)) {
+      return undefined;
+    }
+    if (Array.isArray(prop.get("Bounds"))) {
+      /* array optional */
+      measure.Bounds = prop.getArray("Bounds");
+    }
+    if (Array.isArray(prop.get("PDU"))) {
+      /* array optional */
+      measure.PDU = prop.getArray("PDU");
+    }
+    if (Array.isArray(prop.get("LPTS"))) {
+      /* array optional */
+      measure.LPTS = prop.getArray("LPTS");
+    }
+    if (prop.has("DCS")) {
+      /* dictionary optional */
+      measure.DCS = this._parseGCSDict(prop.get("DCS"));
+    }
+    return measure;
+  }
+
+  _serializeVP(prop) {
+    const result = {};
+    const box = prop.get("BBox");
+
+    if (box && Array.isArray(box) && box.length === 4) {
+      result.BBox = Util.normalizeRect(box);
+    }
+    const measure = prop.get("Measure");
+    if (measure && isDict(measure)) {
+      result.Measure = this._parseMeasure(measure);
+    } else {
+      return undefined;
+    }
+
+    return result;
+  }
+
+  get vp() {
+    const vp = this._getInheritableProperty("VP", /* getArray = */ true);
+    if (vp && Array.isArray(vp)) {
+      const result = vp
+        .map(x => {
+          return this._serializeVP(x);
+        })
+        .filter(x => x);
+      if (result.length === 0) {
+        return undefined;
+      }
+      return shadow(this, "vp", result);
+    }
+    return undefined;
+  }
+
   get mediaBox() {
     // Reset invalid media box to letter size.
     return shadow(

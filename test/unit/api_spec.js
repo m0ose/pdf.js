@@ -2015,6 +2015,30 @@ describe("api", function () {
       await loadingTask.destroy();
       firstImgData = null;
     });
+
+    it("Reads Geo Spatial information in VP", async function () {
+      const loadingTask = getDocument(buildGetDocumentParams("small-geo.pdf"));
+      const pdf = await loadingTask.promise;
+      const page1 = await pdf.getPage(1);
+      const vp = await page1.getVP();
+      expect(vp.length).toEqual(1);
+      const vp0 = vp[0];
+      expect(JSON.stringify(vp0.Measure.GPTS)).toEqual(
+        "[44.53314,-118.76241,44.45156,-118.76241,44.45156,-118.70171,44.53314,-118.70171]"
+      );
+      expect(vp0.BBox).toHaveSize(4);
+      expect(vp0.Measure.GCS.WKT).toEqual(
+        'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]'
+      );
+    });
+
+    it("undefined for Geo information in VP when not available", async function () {
+      const loadingTask = getDocument(basicApiGetDocumentParams);
+      const pdf = await loadingTask.promise;
+      const page1 = await pdf.getPage(1);
+      const vp = await page1.getVP();
+      expect(vp).toBeUndefined();
+    });
   });
 
   describe("Multiple `getDocument` instances", function () {

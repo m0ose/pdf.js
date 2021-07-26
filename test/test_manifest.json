@@ -2879,6 +2879,12 @@
        "link": false,
        "type": "eq"
     },
+    {  "id": "small-geo",
+       "file": "pdfs/small-geo.pdf",
+       "md5": "59eb7577e635033a5c2880a911504235",
+       "rounds": 1,
+       "type": "eq"
+    },
     {  "id": "issue1685",
       "file": "pdfs/issue1685.pdf",
       "md5": "b22c3741e6bd0e613d3eb3325ad31f7d",
